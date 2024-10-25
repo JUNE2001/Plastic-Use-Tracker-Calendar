@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>캘린더 및 플라스틱 사용량</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- 캘린더 영역 -->
+      <div class="calendar">
+        <div class="header">
+          <h2 id="month-year" class="clickable">2024년 10월</h2>
+        </div>
+        <table id="calendar-table">
+          <thead>
+            <tr>
+              <th>일</th>
+              <th>월</th>
+              <th>화</th>
+              <th>수</th>
+              <th>목</th>
+              <th>금</th>
+              <th>토</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- 날짜가 JavaScript를 통해 여기에 채워질 것입니다. -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 우측 공간: 플라스틱 사용량 표시 영역 -->
+      <div class="plastic-usage">
+        <h3>플라스틱 사용량</h3>
+        <div class="usage-info">
+          <p>선택된 날짜: <span id="selected-date">없음</span></p>
+        </div>
+      </div>
+
+      <!-- Modal 창 -->
+      <div id="date-modal" class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h2>연도 및 월 선택</h2>
+          <div class="modal-selects">
+            <select id="modal-year-select"></select>
+            <select id="modal-month-select"></select>
+          </div>
+          <button id="apply-selection">적용</button>
+        </div>
+      </div>
+
+      <script src="script.js"></script>
+    </div>
+  </body>
+</html>
