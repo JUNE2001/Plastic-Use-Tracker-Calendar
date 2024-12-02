@@ -69,14 +69,15 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // 날짜 형식 정리: 띄워쓰기 제거 후 ISO 형식으로 변환
+    // 날짜 형식 변환 (YYYY-MM-DD)
     const formattedDate = selectedDate
-      .replace(/\s+/g, "") // 모든 공백 제거
+      .replace(/\s+/g, "")
       .replace("년", "-")
       .replace("월", "-")
       .replace("일", "")
       .trim();
 
+    // 저장할 데이터 객체 생성
     const plasticData = {
       date: formattedDate,
       smallCount: plasticCounts.small.count,
@@ -89,25 +90,26 @@ document.addEventListener("DOMContentLoaded", function () {
       ).toFixed(1),
     };
 
-    console.log("전송 데이터:", plasticData);
+    console.log("저장 요청 데이터:", plasticData);
 
+    // 서버로 데이터 저장 요청
     fetch("http://127.0.0.1:3000/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(plasticData),
     })
       .then((response) => {
-        if (response.ok) {
-          alert("데이터가 성공적으로 저장되었습니다!");
-        } else {
-          response.text().then((text) => {
-            console.error("응답 오류:", text);
-            alert("데이터 저장에 실패했습니다.");
-          });
+        if (!response.ok) {
+          throw new Error("데이터 저장에 실패했습니다.");
         }
+        return response.text();
+      })
+      .then((message) => {
+        console.log("응답 메시지:", message);
+        alert("데이터가 성공적으로 저장되었습니다!");
       })
       .catch((error) => {
-        console.error("에러 발생:", error);
+        console.error("에러 발생:", error.message);
         alert("서버와 통신 중 문제가 발생했습니다.");
       });
   });
@@ -139,8 +141,49 @@ document.addEventListener("DOMContentLoaded", function () {
   // 캘린더 셀 클릭 이벤트
   function addDateClickEvent(cell, date, year, month) {
     cell.addEventListener("click", function () {
+      const selectedDate = `${year}-${String(month + 1).padStart(
+        2,
+        "0"
+      )}-${String(date).padStart(2, "0")}`;
       selectedDateSpan.textContent = `${year}년 ${month + 1}월 ${date}일`;
-      resetPlasticData();
+
+      // 선택한 날짜로 DB 데이터 요청
+      fetch(`http://127.0.0.1:3000/data?date=${selectedDate}`)
+        .then((response) => {
+          if (!response.ok) {
+            if (response.status === 404) {
+              console.warn(`데이터가 없습니다: ${selectedDate}`);
+              return null; // 데이터가 없는 경우 null 반환
+            }
+            throw new Error("데이터를 불러오는 데 실패했습니다.");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          if (data) {
+            // DB에서 반환된 데이터가 있으면 화면에 표시
+            plasticCounts.small.count = data.small_count || 0;
+            plasticCounts.medium.count = data.medium_count || 0;
+            plasticCounts.large.count = data.large_count || 0;
+
+            document.getElementById("small-count").textContent =
+              plasticCounts.small.count;
+            document.getElementById("medium-count").textContent =
+              plasticCounts.medium.count;
+            document.getElementById("large-count").textContent =
+              plasticCounts.large.count;
+
+            updateTotalWeight();
+          } else {
+            // 데이터가 없으면 초기화
+            console.log("데이터가 없으므로 초기화합니다.");
+            resetPlasticData();
+          }
+        })
+        .catch((error) => {
+          console.error("에러 발생:", error.message);
+          alert("데이터를 불러오는 데 문제가 발생했습니다.");
+        });
     });
   }
 

@@ -32,7 +32,6 @@ db.connect((err) => {
 app.post("/save", (req, res) => {
   const { date, smallCount, mediumCount, largeCount, totalWeight } = req.body;
 
-  // 요청 데이터 디버깅
   console.log("요청 데이터:", req.body);
 
   // 데이터 유효성 검사
@@ -47,38 +46,69 @@ app.post("/save", (req, res) => {
     return res.status(400).send("필수 데이터가 누락되었습니다.");
   }
 
-  // SQL 쿼리와 값 디버깅
-  const sql = `
-    INSERT INTO plastic_data (id, date, small_count, medium_count, large_count, total_weight)
-    VALUES (NULL, ?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE 
-    small_count = VALUES(small_count),
-    medium_count = VALUES(medium_count),
-    large_count = VALUES(large_count),
-    total_weight = VALUES(total_weight)
+  // 데이터 삭제 후 삽입
+  const deleteSql = `DELETE FROM plastic_data WHERE date = ?`;
+  const insertSql = `
+    INSERT INTO plastic_data (date, small_count, medium_count, large_count, total_weight)
+    VALUES (?, ?, ?, ?, ?)
   `;
-  console.log("SQL 쿼리:", sql);
-  console.log("SQL 값:", [
-    date,
-    smallCount,
-    mediumCount,
-    largeCount,
-    totalWeight,
-  ]);
 
-  // 데이터 삽입
-  db.query(
-    sql,
-    [date, smallCount, mediumCount, largeCount, totalWeight],
-    (err, result) => {
-      if (err) {
-        console.error("데이터 저장 실패:", err.message);
-        return res.status(500).send("데이터 저장 실패");
-      }
-      console.log("데이터 저장 성공:", result);
-      res.send("데이터 저장 성공");
+  db.query(deleteSql, [date], (deleteErr, deleteResult) => {
+    if (deleteErr) {
+      console.error("데이터 삭제 실패:", deleteErr.message);
+      return res.status(500).send("데이터 삭제에 실패했습니다.");
     }
-  );
+
+    console.log("기존 데이터 삭제 성공:", deleteResult.affectedRows);
+
+    // 새 데이터 삽입
+    db.query(
+      insertSql,
+      [date, smallCount, mediumCount, largeCount, totalWeight],
+      (insertErr, insertResult) => {
+        if (insertErr) {
+          console.error("데이터 삽입 실패:", insertErr.message);
+          return res.status(500).send("데이터 저장에 실패했습니다.");
+        }
+
+        console.log("데이터 저장 성공:", insertResult);
+        res.send("데이터 저장 성공");
+      }
+    );
+  });
+});
+
+// 특정 날짜의 데이터를 조회하는 API
+app.get("/data", (req, res) => {
+  const { date } = req.query;
+
+  if (!date) {
+    console.warn("날짜가 제공되지 않았습니다.");
+    return res.status(400).send("날짜가 제공되지 않았습니다.");
+  }
+
+  const sql = `
+    SELECT small_count, medium_count, large_count, total_weight
+    FROM plastic_data
+    WHERE date = ?
+  `;
+
+  console.log("데이터 조회 SQL:", sql, "날짜:", date);
+
+  db.query(sql, [date], (err, results) => {
+    if (err) {
+      console.error("데이터 조회 실패:", err.message);
+      return res.status(500).send("데이터 조회에 실패했습니다.");
+    }
+
+    if (results.length > 0) {
+      console.log("조회된 데이터:", results[0]);
+      res.json(results[0]); // 데이터가 있을 경우 반환
+    } else {
+      console.log("해당 날짜의 데이터가 없습니다.");
+      res.status(404).send("해당 날짜의 데이터가 없습니다."); // 404 반환
+    }
+  });
 });
 
 // 기본 경로 '/'에 대해 calendar.html 반환
