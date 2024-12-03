@@ -118,6 +118,31 @@ app.get("/", (req, res) => {
   res.sendFile(filePath);
 });
 
+// 월별 데이터 조회 API
+app.get("/monthly-data", (req, res) => {
+  const { year, month } = req.query;
+
+  if (!year || !month) {
+    return res.status(400).send("연도와 월이 제공되지 않았습니다.");
+  }
+
+  // 해당 월의 모든 데이터 조회
+  const sql = `
+    SELECT DATE_FORMAT(date, '%Y-%m-%d') AS date, total_weight
+    FROM plastic_data
+    WHERE YEAR(date) = ? AND MONTH(date) = ?
+  `;
+
+  db.query(sql, [year, month], (err, results) => {
+    if (err) {
+      console.error("월별 데이터 조회 실패:", err.message);
+      return res.status(500).send("월별 데이터를 조회하는 데 실패했습니다.");
+    }
+
+    res.json(results); // 조회된 데이터를 반환
+  });
+});
+
 // 404 핸들링 (없는 API 요청에 대한 처리)
 app.use((req, res) => {
   console.warn("요청된 경로를 찾을 수 없습니다:", req.url);

@@ -77,7 +77,6 @@ document.addEventListener("DOMContentLoaded", function () {
       .replace("일", "")
       .trim();
 
-    // 저장할 데이터 객체 생성
     const plasticData = {
       date: formattedDate,
       smallCount: plasticCounts.small.count,
@@ -89,8 +88,6 @@ document.addEventListener("DOMContentLoaded", function () {
         plasticCounts.large.count * plasticCounts.large.weight
       ).toFixed(1),
     };
-
-    console.log("저장 요청 데이터:", plasticData);
 
     // 서버로 데이터 저장 요청
     fetch("http://127.0.0.1:3000/save", {
@@ -104,15 +101,46 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         return response.text();
       })
-      .then((message) => {
-        console.log("응답 메시지:", message);
-        alert("데이터가 성공적으로 저장되었습니다!");
+      .then(() => {
+        // 저장 후 새로고침
+        window.location.reload();
       })
       .catch((error) => {
         console.error("에러 발생:", error.message);
-        alert("서버와 통신 중 문제가 발생했습니다.");
       });
   });
+
+  function updateCalendarCell(date, totalWeight) {
+    console.log(`Searching for cell with date: ${date}`);
+    const [year, month, day] = date.split("-").map((num) => parseInt(num, 10));
+    const cells = calendarTable.querySelectorAll("td");
+
+    cells.forEach((cell) => {
+      console.log(`Checking cell with text: "${cell.textContent.trim()}"`);
+      if (
+        parseInt(cell.textContent.trim()) === day &&
+        monthYearDisplay.textContent.trim() === `${year}년 ${month}월`
+      ) {
+        console.log(`Found cell for day: ${day}`);
+        const existingWeightDiv = cell.querySelector("div");
+        if (existingWeightDiv) {
+          existingWeightDiv.remove();
+        }
+
+        const weightDiv = document.createElement("div");
+        weightDiv.textContent = `${totalWeight}kg`;
+        weightDiv.style.position = "absolute";
+        weightDiv.style.bottom = "5px";
+        weightDiv.style.left = "50%";
+        weightDiv.style.transform = "translateX(-50%)";
+        weightDiv.style.fontSize = "0.8em";
+        weightDiv.style.color = "blue";
+
+        cell.style.position = "relative";
+        cell.appendChild(weightDiv);
+      }
+    });
+  }
 
   // 증감 버튼 이벤트 추가
   document.querySelectorAll(".increment").forEach((button) => {
@@ -262,6 +290,90 @@ document.addEventListener("DOMContentLoaded", function () {
       option.textContent = month;
       modalMonthSelect.appendChild(option);
     });
+  }
+
+  // 서버에서 월별 데이터 조회
+  function fetchMonthlyData(year, month) {
+    return fetch(
+      `http://127.0.0.1:3000/monthly-data?year=${year}&month=${month + 1}`
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("월별 데이터를 불러오는 데 실패했습니다.");
+        }
+        return response.json();
+      })
+      .catch((error) => {
+        console.error("에러 발생:", error);
+        return [];
+      });
+  }
+
+  // 캘린더 렌더링 함수
+  async function renderCalendar(month, year) {
+    calendarTable.innerHTML = ""; // 기존 캘린더 초기화
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate(); // 해당 월의 마지막 날짜 계산
+
+    // 월별 데이터 가져오기
+    const monthlyData = await fetchMonthlyData(year, month);
+    const dataMap = {};
+    monthlyData.forEach((item) => {
+      dataMap[item.date] = item.total_weight; // 날짜별 총무게 맵
+    });
+
+    let date = 1;
+    let row = document.createElement("tr");
+
+    // 첫 주 빈 칸 채우기
+    for (let i = 0; i < firstDay; i++) {
+      const emptyCell = document.createElement("td");
+      row.appendChild(emptyCell);
+    }
+
+    // 날짜 채우기
+    while (date <= daysInMonth) {
+      if (row.children.length === 7) {
+        calendarTable.appendChild(row);
+        row = document.createElement("tr");
+      }
+
+      const cell = document.createElement("td");
+      cell.textContent = date;
+
+      // 날짜의 총무게 추가
+      const formattedDate = `${year}-${String(month + 1).padStart(
+        2,
+        "0"
+      )}-${String(date).padStart(2, "0")}`;
+      if (dataMap[formattedDate]) {
+        const weightDiv = document.createElement("div");
+        weightDiv.textContent = `${dataMap[formattedDate]}kg`;
+
+        // 스타일 업데이트 (절대 위치 설정)
+        weightDiv.style.position = "absolute";
+        weightDiv.style.bottom = "95px"; // 셀 아래쪽으로 배치
+        weightDiv.style.left = "25%"; // 셀의 중앙 정렬
+        weightDiv.style.transform = "translateX(-50%)"; // 중앙 정렬 보정
+        weightDiv.style.fontSize = "0.8em";
+        weightDiv.style.color = "blue";
+
+        // 셀의 스타일 업데이트 (position: relative 필요)
+        cell.style.position = "relative";
+
+        cell.appendChild(weightDiv);
+      }
+
+      addDateClickEvent(cell, date, year, month); // 날짜 클릭 이벤트 추가
+      row.appendChild(cell);
+      date++;
+    }
+
+    if (row.children.length > 0) {
+      calendarTable.appendChild(row);
+    }
+
+    monthYearDisplay.textContent = `${year}년 ${monthNames[month]}`;
   }
 
   // 초기화 실행
