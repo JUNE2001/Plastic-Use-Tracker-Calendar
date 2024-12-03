@@ -219,3 +219,32 @@ select {
   overflow: hidden; /* 내용이 넘칠 경우 숨김 처리 */
   text-overflow: ellipsis; /* 넘칠 경우 생략 표시(...) */
 }
+
+/* 캘린더 셀 스타일 */
+#calendar-table td {
+  width: 60px; /* 셀 너비 고정 */
+  height: 60px; /* 셀 높이 고정 */
+  position: relative; /* 절대 위치 배치를 위한 상대 위치 */
+  overflow: hidden; /* 셀 경계를 넘는 요소 숨김 */
+  border: 1px solid #ddd; /* 셀 경계선 */
+}
+
+/* 날짜 텍스트 스타일 */
+#calendar-table td span.date {
+  position: absolute; /* 절대 위치 */
+  top: 5px; /* 셀 상단에서 5px 아래 */
+  left: 5px; /* 셀 왼쪽에서 5px 오른쪽 */
+  font-size: 0.8em; /* 날짜 크기 조정 */
+  font-weight: bold; /* 날짜 텍스트 굵게 */
+  color: black; /* 날짜 텍스트 색상 */
+}
+
+/* 무게 데이터 스타일 */
+#calendar-table td div.weight {
+  position: absolute; /* 절대 위치 */
+  bottom: 5px; /* 셀 하단에서 5px 위 */
+  left: 50%; /* 셀 가로 중앙 */
+  transform: translateX(-50%); /* 가로 중앙 정렬 */
+  font-size: 0.8em; /* 무게 데이터 크기 조정 */
+  color: blue; /* 무게 데이터 색상 */
+}

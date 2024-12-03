@@ -111,32 +111,25 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   function updateCalendarCell(date, totalWeight) {
-    console.log(`Searching for cell with date: ${date}`);
     const [year, month, day] = date.split("-").map((num) => parseInt(num, 10));
     const cells = calendarTable.querySelectorAll("td");
 
     cells.forEach((cell) => {
-      console.log(`Checking cell with text: "${cell.textContent.trim()}"`);
       if (
         parseInt(cell.textContent.trim()) === day &&
         monthYearDisplay.textContent.trim() === `${year}년 ${month}월`
       ) {
-        console.log(`Found cell for day: ${day}`);
+        // 기존 무게 정보를 제거
         const existingWeightDiv = cell.querySelector("div");
         if (existingWeightDiv) {
           existingWeightDiv.remove();
         }
 
+        // 새로운 무게 정보 추가
         const weightDiv = document.createElement("div");
         weightDiv.textContent = `${totalWeight}kg`;
-        weightDiv.style.position = "absolute";
-        weightDiv.style.bottom = "5px";
-        weightDiv.style.left = "50%";
-        weightDiv.style.transform = "translateX(-50%)";
-        weightDiv.style.fontSize = "0.8em";
-        weightDiv.style.color = "blue";
 
-        cell.style.position = "relative";
+        // div 스타일은 CSS에서 처리하므로 추가 스타일 지정 불필요
         cell.appendChild(weightDiv);
       }
     });
