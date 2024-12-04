@@ -178,11 +178,45 @@ document.addEventListener("DOMContentLoaded", function () {
         2,
         "0"
       )}-${String(date).padStart(2, "0")}`;
+      selectedDateSpan.textContent = `${year}년 ${month + 1}월 ${date}일`;
 
-      document.getElementById("selected-date").textContent = selectedDate;
+      // 선택한 날짜로 DB 데이터 요청
+      fetch(`http://127.0.0.1:3000/data?date=${selectedDate}`)
+        .then((response) => {
+          if (!response.ok) {
+            if (response.status === 404) {
+              console.warn(`데이터가 없습니다: ${selectedDate}`);
+              return null; // 데이터가 없는 경우 null 반환
+            }
+            throw new Error("데이터를 불러오는 데 실패했습니다.");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          if (data) {
+            // DB에서 반환된 데이터가 있으면 화면에 표시
+            plasticCounts.small.count = data.small_count || 0;
+            plasticCounts.medium.count = data.medium_count || 0;
+            plasticCounts.large.count = data.large_count || 0;
 
-      // 선택한 날짜 데이터 요청
-      fetchDataForDate(selectedDate);
+            document.getElementById("small-count").textContent =
+              plasticCounts.small.count;
+            document.getElementById("medium-count").textContent =
+              plasticCounts.medium.count;
+            document.getElementById("large-count").textContent =
+              plasticCounts.large.count;
+
+            updateTotalWeight();
+          } else {
+            // 데이터가 없으면 초기화
+            console.log("데이터가 없으므로 초기화합니다.");
+            resetPlasticData();
+          }
+        })
+        .catch((error) => {
+          console.error("에러 발생:", error.message);
+          alert("데이터를 불러오는 데 문제가 발생했습니다.");
+        });
     });
   }
 
@@ -443,48 +477,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     console.log("비교 결과 업데이트 완료");
-  }
-
-  function fetchDataForDate(selectedDate) {
-    fetch(`http://127.0.0.1:3000/data?date=${selectedDate}`)
-      .then((response) => {
-        if (!response.ok) {
-          if (response.status === 404) {
-            console.warn(`데이터가 없습니다: ${selectedDate}`);
-            return null;
-          }
-          throw new Error("데이터를 불러오는 데 실패했습니다.");
-        }
-        return response.json();
-      })
-      .then((data) => {
-        if (data) {
-          // 데이터가 있으면 화면에 표시
-          displayPlasticData(data);
-        } else {
-          resetPlasticData(); // 데이터가 없으면 초기화
-        }
-      })
-      .catch((error) => {
-        console.error("에러 발생:", error.message);
-      });
-  }
-
-  function displayPlasticData(data) {
-    document.getElementById("small-count").textContent = data.small_count || 0;
-    document.getElementById("medium-count").textContent =
-      data.medium_count || 0;
-    document.getElementById("large-count").textContent = data.large_count || 0;
-    document.getElementById(
-      "usage-plastic"
-    ).textContent = `${data.total_weight.toFixed(1)} kg`;
-  }
-
-  function resetPlasticData() {
-    document.getElementById("small-count").textContent = 0;
-    document.getElementById("medium-count").textContent = 0;
-    document.getElementById("large-count").textContent = 0;
-    document.getElementById("usage-plastic").textContent = "0.0 kg";
   }
 
   displayMonthlyComparison(currentYear, currentMonth);
