@@ -25,12 +25,22 @@ document.addEventListener("DOMContentLoaded", function () {
   const applySelectionBtn = document.getElementById("apply-selection");
   const closeModal = document.querySelector(".close");
   const saveButton = document.getElementById("save-plastic-data");
+  const savedYear = localStorage.getItem("selectedYear");
+  const savedMonth = localStorage.getItem("selectedMonth");
 
   const plasticCounts = {
     small: { count: 0, weight: 0.5 },
     medium: { count: 0, weight: 1.0 },
     large: { count: 0, weight: 2.0 },
   };
+
+  if (savedYear && savedMonth) {
+    currentYear = parseInt(savedYear);
+    currentMonth = parseInt(savedMonth);
+  } else {
+    currentYear = new Date().getFullYear();
+    currentMonth = new Date().getMonth();
+  }
 
   // 총 무게 표시 업데이트 함수
   function updateTotalWeight() {
@@ -307,6 +317,10 @@ document.addEventListener("DOMContentLoaded", function () {
   applySelectionBtn.addEventListener("click", async function () {
     currentYear = parseInt(modalYearSelect.value);
     currentMonth = parseInt(modalMonthSelect.value);
+
+    // 선택한 달과 연도를 localStorage에 저장
+    localStorage.setItem("selectedYear", currentYear);
+    localStorage.setItem("selectedMonth", currentMonth);
 
     console.log("선택된 달:", currentYear, currentMonth); // 디버깅 로그
 
