@@ -69,7 +69,6 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // 날짜 형식 변환 (YYYY-MM-DD)
     const formattedDate = selectedDate
       .replace(/\s+/g, "")
       .replace("년", "-")
@@ -89,7 +88,6 @@ document.addEventListener("DOMContentLoaded", function () {
       ).toFixed(1),
     };
 
-    // 서버로 데이터 저장 요청
     fetch("http://127.0.0.1:3000/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -102,7 +100,10 @@ document.addEventListener("DOMContentLoaded", function () {
         return response.text();
       })
       .then(() => {
-        // 저장 후 새로고침
+        const [year, month] = formattedDate
+          .split("-")
+          .map((num) => parseInt(num));
+        updateMonthlyPlasticTotal(year, month - 1); // 월별 데이터 업데이트
         window.location.reload();
       })
       .catch((error) => {
@@ -208,6 +209,32 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // 이번 달 총 사용량 업데이트 함수
+  function updateMonthlyPlasticTotal(year, month) {
+    fetch(`http://127.0.0.1:3000/monthly-data?year=${year}&month=${month + 1}`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("월별 데이터를 불러오는 데 실패했습니다.");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        const totalMonthlyWeight = data.reduce(
+          (sum, item) => sum + item.total_weight,
+          0
+        );
+
+        // 이번 달 총 사용량 업데이트
+        document.querySelector(
+          "#total-monthly-plastic"
+        ).textContent = `${totalMonthlyWeight.toFixed(1)} kg`;
+      })
+      .catch((error) => {
+        console.error("에러 발생:", error.message);
+        document.querySelector("#total-monthly-plastic").textContent = "없음";
+      });
+  }
+
   // 캘린더 렌더링 함수
   function renderCalendar(month, year) {
     calendarTable.innerHTML = ""; // 기존 캘린더 초기화
@@ -304,27 +331,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 캘린더 렌더링 함수
   async function renderCalendar(month, year) {
-    calendarTable.innerHTML = ""; // 기존 캘린더 초기화
+    calendarTable.innerHTML = "";
     const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate(); // 해당 월의 마지막 날짜 계산
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    // 월별 데이터 가져오기
     const monthlyData = await fetchMonthlyData(year, month);
     const dataMap = {};
     monthlyData.forEach((item) => {
-      dataMap[item.date] = item.total_weight; // 날짜별 총무게 맵
+      dataMap[item.date] = item.total_weight;
     });
 
     let date = 1;
     let row = document.createElement("tr");
 
-    // 첫 주 빈 칸 채우기
     for (let i = 0; i < firstDay; i++) {
       const emptyCell = document.createElement("td");
       row.appendChild(emptyCell);
     }
 
-    // 날짜 채우기
     while (date <= daysInMonth) {
       if (row.children.length === 7) {
         calendarTable.appendChild(row);
@@ -334,7 +358,6 @@ document.addEventListener("DOMContentLoaded", function () {
       const cell = document.createElement("td");
       cell.textContent = date;
 
-      // 날짜의 총무게 추가
       const formattedDate = `${year}-${String(month + 1).padStart(
         2,
         "0"
@@ -342,22 +365,11 @@ document.addEventListener("DOMContentLoaded", function () {
       if (dataMap[formattedDate]) {
         const weightDiv = document.createElement("div");
         weightDiv.textContent = `${dataMap[formattedDate]}kg`;
-
-        // 스타일 업데이트 (절대 위치 설정)
-        weightDiv.style.position = "absolute";
-        weightDiv.style.bottom = "95px"; // 셀 아래쪽으로 배치
-        weightDiv.style.left = "25%"; // 셀의 중앙 정렬
-        weightDiv.style.transform = "translateX(-50%)"; // 중앙 정렬 보정
-        weightDiv.style.fontSize = "0.8em";
-        weightDiv.style.color = "blue";
-
-        // 셀의 스타일 업데이트 (position: relative 필요)
-        cell.style.position = "relative";
-
+        weightDiv.classList.add("calendar-weight");
         cell.appendChild(weightDiv);
       }
 
-      addDateClickEvent(cell, date, year, month); // 날짜 클릭 이벤트 추가
+      addDateClickEvent(cell, date, year, month);
       row.appendChild(cell);
       date++;
     }
@@ -367,6 +379,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     monthYearDisplay.textContent = `${year}년 ${monthNames[month]}`;
+
+    // 월별 총 사용량 업데이트 호출
+    updateMonthlyPlasticTotal(year, month);
   }
 
   // 초기화 실행

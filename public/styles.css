@@ -240,11 +240,8 @@ select {
 }
 
 /* 무게 데이터 스타일 */
-#calendar-table td div.weight {
-  position: absolute; /* 절대 위치 */
-  bottom: 5px; /* 셀 하단에서 5px 위 */
-  left: 50%; /* 셀 가로 중앙 */
-  transform: translateX(-50%); /* 가로 중앙 정렬 */
-  font-size: 0.8em; /* 무게 데이터 크기 조정 */
-  color: blue; /* 무게 데이터 색상 */
+.calendar-weight {
+  color: blue;
+  font-size: 0.8em;
+  position: absolute;
 }
