@@ -143,6 +143,51 @@ app.get("/monthly-data", (req, res) => {
   });
 });
 
+app.get("/monthly-comparison-data", (req, res) => {
+  const { year, month } = req.query;
+
+  if (!year || !month) {
+    return res.status(400).json({ error: "연도와 월이 필요합니다." });
+  }
+
+  const currentMonthQuery = `
+    SELECT SUM(total_weight) AS currentTotal
+    FROM plastic_data
+    WHERE YEAR(date) = ? AND MONTH(date) = ?
+  `;
+  const previousMonthQuery = `
+    SELECT SUM(total_weight) AS previousTotal
+    FROM plastic_data
+    WHERE YEAR(date) = ? AND MONTH(date) = ?
+  `;
+
+  db.query(currentMonthQuery, [year, month], (err, currentResults) => {
+    if (err) {
+      console.error("현재 월 데이터 조회 실패:", err.message);
+      return res.status(500).json({ error: "데이터 조회 실패" });
+    }
+
+    const previousYear = month === 1 ? year - 1 : year;
+    const previousMonth = month === 1 ? 12 : month - 1;
+
+    db.query(
+      previousMonthQuery,
+      [previousYear, previousMonth],
+      (err, previousResults) => {
+        if (err) {
+          console.error("이전 월 데이터 조회 실패:", err.message);
+          return res.status(500).json({ error: "데이터 조회 실패" });
+        }
+
+        const currentTotal = currentResults[0]?.currentTotal || 0;
+        const previousTotal = previousResults[0]?.previousTotal || 0;
+
+        res.json({ currentTotal, previousTotal });
+      }
+    );
+  });
+});
+
 // 404 핸들링 (없는 API 요청에 대한 처리)
 app.use((req, res) => {
   console.warn("요청된 경로를 찾을 수 없습니다:", req.url);

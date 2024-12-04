@@ -100,10 +100,11 @@ document.addEventListener("DOMContentLoaded", function () {
         return response.text();
       })
       .then(() => {
-        const [year, month] = formattedDate
-          .split("-")
-          .map((num) => parseInt(num));
-        updateMonthlyPlasticTotal(year, month - 1); // 월별 데이터 업데이트
+        // 월별 데이터 갱신 및 비교 데이터 갱신
+        updateMonthlyPlasticTotal(currentYear, currentMonth);
+        displayMonthlyComparison(currentYear, currentMonth);
+
+        // 새로고침으로 캘린더 업데이트
         window.location.reload();
       })
       .catch((error) => {
@@ -236,102 +237,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // 캘린더 렌더링 함수
-  function renderCalendar(month, year) {
-    calendarTable.innerHTML = ""; // 기존 캘린더 초기화
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate(); // 해당 월의 마지막 날짜 계산
-
-    let date = 1;
-    let row = document.createElement("tr");
-
-    // 첫 주 빈 칸 채우기
-    for (let i = 0; i < firstDay; i++) {
-      const emptyCell = document.createElement("td");
-      row.appendChild(emptyCell);
-    }
-
-    // 날짜 채우기
-    while (date <= daysInMonth) {
-      if (row.children.length === 7) {
-        calendarTable.appendChild(row);
-        row = document.createElement("tr");
-      }
-
-      const cell = document.createElement("td");
-      cell.textContent = date;
-
-      addDateClickEvent(cell, date, year, month);
-
-      row.appendChild(cell);
-      date++;
-    }
-
-    if (row.children.length > 0) {
-      calendarTable.appendChild(row);
-    }
-
-    monthYearDisplay.textContent = `${year}년 ${monthNames[month]}`;
-  }
-
-  // 연도 및 월 선택 모달 열기
-  monthYearDisplay.addEventListener("click", function () {
-    modal.style.display = "block";
-    modalYearSelect.value = currentYear;
-    modalMonthSelect.value = currentMonth;
-  });
-
-  // 모달 닫기
-  closeModal.addEventListener("click", function () {
-    modal.style.display = "none";
-  });
-
-  // 모달에서 연도와 월 선택 후 적용
-  applySelectionBtn.addEventListener("click", function () {
-    currentYear = parseInt(modalYearSelect.value);
-    currentMonth = parseInt(modalMonthSelect.value);
-    renderCalendar(currentMonth, currentYear);
-    modal.style.display = "none";
-  });
-
-  // 초기화: 연도 및 월 선택 옵션 채우기
-  function populateYearOptions() {
-    for (let i = currentYear - 50; i <= currentYear + 50; i++) {
-      let option = document.createElement("option");
-      option.value = i;
-      option.textContent = i + "년";
-      modalYearSelect.appendChild(option);
-    }
-  }
-
-  function populateMonthOptions() {
-    monthNames.forEach((month, index) => {
-      let option = document.createElement("option");
-      option.value = index;
-      option.textContent = month;
-      modalMonthSelect.appendChild(option);
-    });
-  }
-
-  // 서버에서 월별 데이터 조회
-  function fetchMonthlyData(year, month) {
-    return fetch(
-      `http://127.0.0.1:3000/monthly-data?year=${year}&month=${month + 1}`
-    )
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("월별 데이터를 불러오는 데 실패했습니다.");
-        }
-        return response.json();
-      })
-      .catch((error) => {
-        console.error("에러 발생:", error);
-        return [];
-      });
-  }
-
-  // 캘린더 렌더링 함수
   async function renderCalendar(month, year) {
-    calendarTable.innerHTML = "";
+    calendarTable.innerHTML = ""; // 기존 캘린더 초기화
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -380,12 +287,189 @@ document.addEventListener("DOMContentLoaded", function () {
 
     monthYearDisplay.textContent = `${year}년 ${monthNames[month]}`;
 
-    // 월별 총 사용량 업데이트 호출
-    updateMonthlyPlasticTotal(year, month);
+    // 월별 비교 데이터 업데이트
+    await displayMonthlyComparison(year, month); // **비교 결과 갱신**
   }
 
-  // 초기화 실행
+  // 연도 및 월 선택 모달 열기
+  monthYearDisplay.addEventListener("click", function () {
+    modal.style.display = "block";
+    modalYearSelect.value = currentYear;
+    modalMonthSelect.value = currentMonth;
+  });
+
+  // 모달 닫기
+  closeModal.addEventListener("click", function () {
+    modal.style.display = "none";
+  });
+
+  // 모달에서 연도와 월 선택 후 적용
+  applySelectionBtn.addEventListener("click", async function () {
+    currentYear = parseInt(modalYearSelect.value);
+    currentMonth = parseInt(modalMonthSelect.value);
+
+    console.log("선택된 달:", currentYear, currentMonth); // 디버깅 로그
+
+    await renderCalendar(currentMonth, currentYear); // 캘린더 및 비교 데이터 갱신
+    modal.style.display = "none";
+  });
+
+  // 초기화: 연도 및 월 선택 옵션 채우기
+  function populateYearOptions() {
+    for (let i = currentYear - 50; i <= currentYear + 50; i++) {
+      let option = document.createElement("option");
+      option.value = i;
+      option.textContent = i + "년";
+      modalYearSelect.appendChild(option);
+    }
+  }
+
+  function populateMonthOptions() {
+    monthNames.forEach((month, index) => {
+      let option = document.createElement("option");
+      option.value = index;
+      option.textContent = month;
+      modalMonthSelect.appendChild(option);
+    });
+  }
+
+  // 서버에서 월별 데이터 조회
+  function fetchMonthlyData(year, month) {
+    return fetch(
+      `http://127.0.0.1:3000/monthly-data?year=${year}&month=${month + 1}`
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("월별 데이터를 불러오는 데 실패했습니다.");
+        }
+        return response.json();
+      })
+      .catch((error) => {
+        console.error("에러 발생:", error);
+        return [];
+      });
+  }
+
+  // 캘린더 렌더링 함수
+  async function renderCalendar(month, year) {
+    calendarTable.innerHTML = ""; // 기존 캘린더 초기화
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const monthlyData = await fetchMonthlyData(year, month);
+    const dataMap = {};
+    monthlyData.forEach((item) => {
+      dataMap[item.date] = item.total_weight;
+    });
+
+    let date = 1;
+    let row = document.createElement("tr");
+
+    for (let i = 0; i < firstDay; i++) {
+      const emptyCell = document.createElement("td");
+      row.appendChild(emptyCell);
+    }
+
+    while (date <= daysInMonth) {
+      if (row.children.length === 7) {
+        calendarTable.appendChild(row);
+        row = document.createElement("tr");
+      }
+
+      const cell = document.createElement("td");
+      cell.textContent = date;
+
+      const formattedDate = `${year}-${String(month + 1).padStart(
+        2,
+        "0"
+      )}-${String(date).padStart(2, "0")}`;
+      if (dataMap[formattedDate]) {
+        const weightDiv = document.createElement("div");
+        weightDiv.textContent = `${dataMap[formattedDate]}kg`;
+        weightDiv.classList.add("calendar-weight");
+        cell.appendChild(weightDiv);
+      }
+
+      addDateClickEvent(cell, date, year, month);
+      row.appendChild(cell);
+      date++;
+    }
+
+    if (row.children.length > 0) {
+      calendarTable.appendChild(row);
+    }
+
+    monthYearDisplay.textContent = `${year}년 ${monthNames[month]}`;
+
+    // 월별 총 사용량 및 비교 데이터 갱신
+    await updateMonthlyPlasticTotal(year, month);
+    await displayMonthlyComparison(year, month);
+  }
+
+  async function fetchMonthlyComparison(year, month) {
+    console.log(`비교 데이터 요청: year=${year}, month=${month + 1}`);
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:3000/monthly-comparison-data?year=${year}&month=${
+          month + 1
+        }`
+      );
+
+      if (!response.ok) {
+        console.error("응답 오류:", response.status, response.statusText);
+        throw new Error("비교 데이터를 불러오는 데 실패했습니다.");
+      }
+
+      const data = await response.json();
+      console.log("비교 데이터:", data);
+
+      const currentTotal = data.currentTotal || 0;
+      const previousTotal = data.previousTotal || 0;
+
+      let changePercentage = 0;
+      if (previousTotal !== 0) {
+        changePercentage =
+          ((currentTotal - previousTotal) / previousTotal) * 100;
+      }
+
+      return { currentTotal, previousTotal, changePercentage };
+    } catch (error) {
+      console.error("에러 발생:", error.message);
+      return { currentTotal: 0, previousTotal: 0, changePercentage: 0 };
+    }
+  }
+
+  async function displayMonthlyComparison(year, month) {
+    const { currentTotal, previousTotal, changePercentage } =
+      await fetchMonthlyComparison(year, month);
+
+    document.getElementById("current-total").textContent =
+      currentTotal.toFixed(1);
+    document.getElementById("previous-total").textContent =
+      previousTotal.toFixed(1);
+    document.getElementById("change-percentage").textContent =
+      changePercentage.toFixed(1);
+
+    const comparisonStatus = document.getElementById("comparison-status");
+    if (changePercentage > 0) {
+      comparisonStatus.textContent = "사용량이 증가했습니다.";
+      comparisonStatus.style.color = "red";
+    } else if (changePercentage < 0) {
+      comparisonStatus.textContent = "사용량이 감소했습니다.";
+      comparisonStatus.style.color = "green";
+    } else {
+      comparisonStatus.textContent = "사용량 변화가 없습니다.";
+      comparisonStatus.style.color = "black";
+    }
+
+    console.log("비교 결과 업데이트 완료");
+  }
+
+  displayMonthlyComparison(currentYear, currentMonth);
+
   populateYearOptions();
   populateMonthOptions();
+
+  // 초기 캘린더 렌더링
   renderCalendar(currentMonth, currentYear);
 });
