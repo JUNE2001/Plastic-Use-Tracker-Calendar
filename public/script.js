@@ -98,7 +98,7 @@ document.addEventListener("DOMContentLoaded", function () {
       ).toFixed(1),
     };
 
-    fetch("http://127.0.0.1:3000/save", {
+    fetch("/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(plasticData),
@@ -188,7 +188,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 이번 달 총 사용량 업데이트 함수
   function updateMonthlyPlasticTotal(year, month) {
-    fetch(`http://127.0.0.1:3000/monthly-data?year=${year}&month=${month + 1}`)
+    fetch(`/monthly-data?year=${year}&month=${month + 1}`)
       .then((response) => {
         if (!response.ok) {
           throw new Error("월별 데이터를 불러오는 데 실패했습니다.");
@@ -316,7 +316,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // 서버에서 월별 데이터 조회
   function fetchMonthlyData(year, month) {
     return fetch(
-      `http://127.0.0.1:3000/monthly-data?year=${year}&month=${month + 1}`
+      `/monthly-data?year=${year}&month=${month + 1}`
     )
       .then((response) => {
         if (!response.ok) {
@@ -390,7 +390,7 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log(`비교 데이터 요청: year=${year}, month=${month + 1}`);
     try {
       const response = await fetch(
-        `http://127.0.0.1:3000/monthly-comparison-data?year=${year}&month=${
+        `/monthly-comparison-data?year=${year}&month=${
           month + 1
         }`
       );
@@ -446,7 +446,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function fetchDataForDate(selectedDate) {
-    fetch(`http://127.0.0.1:3000/data?date=${selectedDate}`)
+    fetch(`/data?date=${selectedDate}`)
       .then((response) => {
         if (!response.ok) {
           if (response.status === 404) {

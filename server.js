@@ -1,5 +1,5 @@
 const express = require("express");
-const sqlite3 = require("sqlite3").verbose();
+const { DatabaseSync } = require("node:sqlite");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require("path");
@@ -12,13 +12,36 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 
 // SQLite 데이터베이스 연결
-const db = new sqlite3.Database("plastic_usage.db", (err) => {
-  if (err) {
-    console.error("SQLite 연결 실패:", err.message);
-    process.exit(1);
-  }
-  console.log("SQLite 연결 성공!");
-});
+const sqlite = new DatabaseSync("plastic_usage.db");
+const db = {
+  run(sql, params, callback) {
+    if (typeof params === "function") {
+      callback = params;
+      params = [];
+    }
+    try {
+      sqlite.prepare(sql).run(...(params || []));
+      callback?.(null);
+    } catch (err) {
+      callback?.(err);
+    }
+  },
+  get(sql, params, callback) {
+    try {
+      callback(null, sqlite.prepare(sql).get(...(params || [])));
+    } catch (err) {
+      callback(err);
+    }
+  },
+  all(sql, params, callback) {
+    try {
+      callback(null, sqlite.prepare(sql).all(...(params || [])));
+    } catch (err) {
+      callback(err);
+    }
+  },
+};
+console.log("SQLite 연결 성공!");
 
 // 테이블 초기화
 const initTableSql = `
@@ -199,7 +222,7 @@ app.get("/", (req, res) => {
 });
 
 // 서버 실행
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 app.listen(PORT, () => {
   console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
 });
